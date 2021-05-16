@@ -1,0 +1,15 @@
+{
+    "devices": [
+        {
+            "name": "Lamp",
+            "address": "bluetooth mac address",
+            "invertState": false
+        }
+    ],
+    "mqtt": {
+        "host": "",
+        "port": "",
+        "username": "",
+        "password": ""
+    }
+}
