@@ -2,8 +2,7 @@
     "devices": [
         {
             "name": "Lamp",
-            "address": "bluetooth mac address",
-            "invertState": false
+            "address": "bluetooth mac address"
         }
     ],
     "mqtt": {
