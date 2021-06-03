@@ -10,5 +10,7 @@
         "port": "",
         "username": "",
         "password": ""
-    }
+    },
+    "updateInterval": 24,
+    "logLevel": "info"
 }

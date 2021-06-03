@@ -1,8 +1,25 @@
 const Switchbot = require('node-switchbot');
 const mqtt = require('mqtt');
+const winston = require('winston');
 
 const config = require('./config.json');
+const devices = config.devices;
 const switchbot = new Switchbot();
+let initialized = false;
+
+const myformat = winston.format.combine(
+    winston.format.colorize(),
+    winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
+    winston.format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+);
+const logger = winston.createLogger({
+    level: config.logLevel,
+    format: myformat,
+    defaultMeta: { service: 'user-service' },
+    transports: [
+        new winston.transports.Console()
+    ]
+});
 
 const mqttClient = mqtt.connect({
     host: config.mqtt.host,
@@ -17,46 +34,63 @@ const mqttClient = mqtt.connect({
 });
 
 mqttClient.on('error', err => {
-    console.log('Can\'t connect to mqtt broker: '+err.message);
-    process.exit(1);
+    if(!mqttClient.reconnecting) {
+        logger.error('Unable to connect to mqtt broker: '+err.message);
+        process.exit(1);
+    }
+});
+
+mqttClient.on('offline', () => {
+    logger.error('Connection to mqtt broker lost');
 });
 
 mqttClient.on('connect', async () => {
-    console.log('Connected to mqtt broker');
+    logger.info('Connected to mqtt broker');
     mqttClient.publish('switchbot/available', 'online', {retain: true});
-});
 
+    if(!initialized) {
+        initialized = true;
 
-(async () => {
-    const devices = config.devices;
-    await asyncForEach(devices, async device => {
-        device.id = device.address.replace(/:/g, '').toLowerCase();
+        await asyncForEach(devices, async device => {
+            device.id = device.address.replace(/:/g, '').toLowerCase();
+            advertiseHomeAssistantDevice(device);
+            logger.info(`Loaded device ${device.name} (${device.address})`);
+        });
 
-        advertiseHomeAssistantDevice(device);
-    });
-
-    mqttClient.subscribe('switchbot/+/control');
-    mqttClient.on('message', async (topic, payload) => {
-        const currentId = topic.match(/switchbot\/(.+)\/control/)[1];
-        const device = devices.find(device => device.id == currentId);
-        if(device == null) {
-            console.error('Device with id '+currentId+' not found!');
-            return;
-        }
-
-        const clients = await switchbot.discover({ id: device.address, quick: true });
-        if(clients.length == 0) {
-            console.log('Connection to device '+device.name+' failed.');
-        } else {
-           const client = clients[0];
-            if(payload == 'ON') {
-                await client.turnOn()
-            } else if(payload == 'OFF') {
-                await client.turnOff();
+        mqttClient.subscribe('switchbot/+/control');
+        mqttClient.on('message', async (topic, payload) => {
+            const currentId = topic.match(/switchbot\/(.+)\/control/)[1];
+            const device = devices.find(device => device.id == currentId);
+            if(device == null) {
+                logger.error(`No device with id ${currentId} found!`);
+                return;
             }
-        }
-    });
-})();
+
+            let clients;
+            try {
+                clients = await switchbot.discover({ id: device.address, quick: true });
+            } catch(err) {
+                logger.error(`Connection to device ${device.name} (${device.address}) failed. (Invalid address)`);
+                return;
+            }
+            if(clients.length == 0) {
+                logger.error(`Connection to device ${device.name} (${device.address}) failed.`);
+            } else {
+                const client = clients[0];
+                if(payload == 'ON') {
+                    await client.turnOn()
+                    logger.debug(`Device ${device.name} (${device.address}) turned on`);
+                } else if(payload == 'OFF') {
+                    await client.turnOff();
+                    logger.debug(`Device ${device.name} (${device.address}) turned off`);
+                }
+            }
+        });
+
+        updateDeviceInfo();
+        setInterval(updateDeviceInfo, config.updateInterval * 3600000);
+    }
+});
 
 function advertiseHomeAssistantDevice(device) {
     const deviceInfo = {
@@ -73,7 +107,7 @@ function advertiseHomeAssistantDevice(device) {
         command_topic: 'switchbot/'+device.id+'/control',
         device: deviceInfo,
         optimistic: true
-    }));
+    }), {retain: true});
 
     mqttClient.publish('homeassistant/sensor/sb_'+device.id+'_battery/config', JSON.stringify({
         name: device.name+" Batterie",
@@ -84,10 +118,11 @@ function advertiseHomeAssistantDevice(device) {
         unit_of_measurement: '%',
         device_class: 'battery',
         device: deviceInfo
-    }));
+    }), {retain: true});
 }
 
-async function getDeviceInfo() {
+async function updateDeviceInfo() {
+    logger.debug("Updating device info...");
     devices.forEach(device => {
         device.scanComplete = false;
     });
@@ -99,11 +134,13 @@ async function getDeviceInfo() {
         if(device.scanComplete) return;
         device.scanComplete = true;
 
-        mqttClient.publish('switchbot/'+device.id+'/battery', ad.serviceData.battery.toString(), {retain: true});
+        const batteryLevel = ad.serviceData.battery.toString();
+        logger.debug(`Battery level of device ${device.name} (${device.address}): ${batteryLevel}%`);
+        mqttClient.publish('switchbot/'+device.id+'/battery', batteryLevel, {retain: true});
     };
 
     switchbot.startScan();
-    await delay(5000);
+    await delay(3000);
     switchbot.stopScan();
 }
 

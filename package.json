@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "mqtt": "^4.2.6",
-    "node-switchbot": "^1.0.0"
+    "node-switchbot": "^1.0.0",
+    "winston": "^3.3.3"
   }
 }
