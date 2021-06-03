@@ -15,6 +15,7 @@ To install and run the script execute:
 
 ```sh
     $ git clone https://github.com/1RandomDev/switchbot-bridge
+    $ npm install
     $ cp config.sample.json config.json
     $ node index.js
 ```
