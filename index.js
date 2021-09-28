@@ -77,12 +77,23 @@ mqttClient.on('connect', async () => {
                 logger.error(`Connection to device ${device.name} (${device.address}) failed.`);
             } else {
                 const client = clients[0];
-                if(payload == 'ON') {
-                    await client.turnOn()
-                    logger.debug(`Device ${device.name} (${device.address}) turned on`);
-                } else if(payload == 'OFF') {
-                    await client.turnOff();
-                    logger.debug(`Device ${device.name} (${device.address}) turned off`);
+                let errorCount = 0;
+
+                while(errorCount < 5) {
+                    try {
+                        if(payload == 'ON') {
+                            await client.turnOn()
+                            logger.debug(`Device ${device.name} (${device.address}) turned on`);
+                            break;
+                        } else if(payload == 'OFF') {
+                            await client.turnOff();
+                            logger.debug(`Device ${device.name} (${device.address}) turned off`);
+                            break;
+                        }
+                    } catch(err) {
+                        logger.error(`Connection to device ${device.name} (${device.address}) failed: ${err.message}`);
+                        errorCount++;
+                    }
                 }
             }
         });
