@@ -1,10 +1,11 @@
 const Switchbot = require('node-switchbot');
 const mqtt = require('mqtt');
 const winston = require('winston');
+const noble = require('@homebridge/noble');
 
 const config = require('./config.json');
 const devices = config.devices;
-const switchbot = new Switchbot();
+const switchbot = new Switchbot({noble: noble});
 let initialized = false;
 
 const myformat = winston.format.combine(

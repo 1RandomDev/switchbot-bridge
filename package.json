@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@homebridge/noble": "^1.9.3",
     "mqtt": "^4.2.6",
     "node-switchbot": "^1.0.0",
     "winston": "^3.3.3"
