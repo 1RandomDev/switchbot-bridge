@@ -11,8 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "@homebridge/noble": "^1.9.3",
-    "mqtt": "^4.2.6",
-    "node-switchbot": "^1.0.0",
-    "winston": "^3.3.3"
+    "mqtt": "^4.3.7",
+    "node-switchbot": "^1.2.0",
+    "winston": "^3.7.2"
   }
 }
