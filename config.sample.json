@@ -12,5 +12,6 @@
         "password": ""
     },
     "updateInterval": 24,
+    "optimisticMode": true,
     "logLevel": "info"
 }

@@ -67,6 +67,8 @@ mqttClient.on('connect', async () => {
                 return;
             }
 
+            mqttClient.publish('switchbot/'+device.id+'/state', payload, {retain: true});
+
             let clients;
             try {
                 clients = await switchbot.discover({ id: device.address, quick: true });
@@ -83,7 +85,7 @@ mqttClient.on('connect', async () => {
                 while(errorCount < 5) {
                     try {
                         if(payload == 'ON') {
-                            await client.turnOn()
+                            await client.turnOn();
                             logger.debug(`Device ${device.name} (${device.address}) turned on`);
                             break;
                         } else if(payload == 'OFF') {
@@ -117,8 +119,9 @@ function advertiseHomeAssistantDevice(device) {
         unique_id: 'sb_'+device.id+'_switch',
         availability_topic: 'switchbot/available',
         command_topic: 'switchbot/'+device.id+'/control',
-        device: deviceInfo,
-        optimistic: true
+        state_topic: 'switchbot/'+device.id+'/state',
+        optimistic: config.optimisticMode,
+        device: deviceInfo
     }), {retain: true});
 
     mqttClient.publish('homeassistant/sensor/sb_'+device.id+'_battery/config', JSON.stringify({

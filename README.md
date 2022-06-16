@@ -30,4 +30,5 @@ Configuration
 - `mqtt`: MQTT broker which HA is connected to
     - ...
 - `updateInterval`: The update interval for the device info (in hours)
+- `optimisticMode`: Weather the switch entities in HomeAssistant should be in optimistic mode. (There is no feedback from the SwitchBot, in normal mode the last known state will be used.)
 - `logLevel`: Application log level (available [log levels](https://github.com/winstonjs/winston#logging-levels))
